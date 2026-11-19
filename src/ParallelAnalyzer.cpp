@@ -1,11 +1,9 @@
-
 #include "ParallelAnalyzer.h"
+
 #include <omp.h>
 
 AnalysisResult ParallelAnalyzer::analyze(
     const std::vector<LogRecord>& logs) {
-
-    AnalysisResult result;
 
     int info = 0;
     int warning = 0;
@@ -14,25 +12,23 @@ AnalysisResult ParallelAnalyzer::analyze(
     int unknown = 0;
 
     #pragma omp parallel for reduction(+:info, warning, error, critical, unknown)
-    for (int i = 0; i < static_cast<int>(logs.size()); i++) {
+    for (int i = 0; i < static_cast<int>(logs.size()); ++i) {
+        const std::string& level = logs[static_cast<std::size_t>(i)].level;
 
-        if (logs[i].level == "INFO") {
-            info++;
-        }
-        else if (logs[i].level == "WARNING") {
-            warning++;
-        }
-        else if (logs[i].level == "ERROR") {
-            error++;
-        }
-        else if (logs[i].level == "CRITICAL") {
-            critical++;
-        }
-        else {
-            unknown++;
+        if (level == "INFO") {
+            ++info;
+        } else if (level == "WARNING") {
+            ++warning;
+        } else if (level == "ERROR") {
+            ++error;
+        } else if (level == "CRITICAL") {
+            ++critical;
+        } else {
+            ++unknown;
         }
     }
 
+    AnalysisResult result;
     result.totalEntries = static_cast<int>(logs.size());
     result.infoCount = info;
     result.warningCount = warning;

@@ -1,115 +1,90 @@
-
-#include <iostream>
 #include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <vector>
 #include <omp.h>
 
 #include "LogReader.h"
 #include "SequentialAnalyzer.h"
 #include "ParallelAnalyzer.h"
 
+namespace {
+bool resultsMatch(const AnalysisResult& first, const AnalysisResult& second) {
+    return first.totalEntries == second.totalEntries &&
+           first.infoCount == second.infoCount &&
+           first.warningCount == second.warningCount &&
+           first.errorCount == second.errorCount &&
+           first.criticalCount == second.criticalCount &&
+           first.unknownCount == second.unknownCount;
+}
+}
+
 int main() {
-
     const int repetitions = 10;
+    const int numberOfThreads = 4;
+    omp_set_num_threads(numberOfThreads);
 
-    omp_set_num_threads(4);
-
-    // Read dataset before benchmarking
+    // File reading is outside the timed sections.
     LogReader reader;
-    std::vector<LogRecord> logs =
+    const std::vector<LogRecord> logs =
         reader.readLogs("data/large_server.log");
 
     if (logs.empty()) {
-        std::cerr << "No log entries loaded.\n";
+        std::cerr << "No benchmark log entries loaded.\n";
         return 1;
     }
 
     SequentialAnalyzer sequential;
     ParallelAnalyzer parallel;
 
-    double sequentialTotal = 0;
-    double parallelTotal = 0;
-
-    AnalysisResult seqResult;
-    AnalysisResult parResult;
-
-    // Warm-up runs
+    // Warm-up both implementations before collecting measurements.
     sequential.analyze(logs);
     parallel.analyze(logs);
 
-    // Sequential benchmark
-    for (int i = 0; i < repetitions; i++) {
+    double sequentialTotal = 0.0;
+    double parallelTotal = 0.0;
+    AnalysisResult sequentialResult;
+    AnalysisResult parallelResult;
 
-        auto start = std::chrono::high_resolution_clock::now();
-
-        seqResult = sequential.analyze(logs);
-
-        auto end = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < repetitions; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        sequentialResult = sequential.analyze(logs);
+        auto end = std::chrono::steady_clock::now();
 
         sequentialTotal +=
-            std::chrono::duration<double, std::milli>(
-                end - start
-            ).count();
-    }
+            std::chrono::duration<double, std::milli>(end - start).count();
 
-    // Parallel benchmark
-    for (int i = 0; i < repetitions; i++) {
-
-        auto start = std::chrono::high_resolution_clock::now();
-
-        parResult = parallel.analyze(logs);
-
-        auto end = std::chrono::high_resolution_clock::now();
+        start = std::chrono::steady_clock::now();
+        parallelResult = parallel.analyze(logs);
+        end = std::chrono::steady_clock::now();
 
         parallelTotal +=
-            std::chrono::duration<double, std::milli>(
-                end - start
-            ).count();
+            std::chrono::duration<double, std::milli>(end - start).count();
     }
 
-    double sequentialAverage =
-        sequentialTotal / repetitions;
+    const double sequentialAverage = sequentialTotal / repetitions;
+    const double parallelAverage = parallelTotal / repetitions;
+    const bool correct = resultsMatch(sequentialResult, parallelResult);
 
-    double parallelAverage =
-        parallelTotal / repetitions;
+    std::cout << std::fixed << std::setprecision(5);
+    std::cout << "===== PERFORMANCE BENCHMARK =====\n\n";
+    std::cout << "Log entries: " << logs.size() << '\n';
+    std::cout << "Threads: " << numberOfThreads << '\n';
+    std::cout << "Repetitions: " << repetitions << '\n';
+    std::cout << "Warm-up runs: 1 per implementation\n";
+    std::cout << "File reading: excluded from measurement\n\n";
+    std::cout << "Sequential average: " << sequentialAverage << " ms\n";
+    std::cout << "Parallel average: " << parallelAverage << " ms\n";
 
-    // Verify results
-    bool correct =
-        seqResult.totalEntries == parResult.totalEntries &&
-        seqResult.infoCount == parResult.infoCount &&
-        seqResult.warningCount == parResult.warningCount &&
-        seqResult.errorCount == parResult.errorCount &&
-        seqResult.criticalCount == parResult.criticalCount &&
-        seqResult.unknownCount == parResult.unknownCount;
-
-    std::cout << "\n===== PERFORMANCE BENCHMARK =====\n\n";
-
-    std::cout << "Log entries: " << logs.size() << "\n";
-    std::cout << "Threads: " << omp_get_max_threads() << "\n";
-    std::cout << "Repetitions: " << repetitions << "\n\n";
-
-    std::cout << "Sequential average: "
-              << sequentialAverage << " ms\n";
-
-    std::cout << "Parallel average: "
-              << parallelAverage << " ms\n";
-
-    if (parallelAverage > 0) {
-
-        double speedup =
-            sequentialAverage / parallelAverage;
-
-        double efficiency = speedup / 4.0 * 100.0;
-
-        std::cout << "Speedup: "
-                  << speedup << "x\n";
-
-        std::cout << "Parallel efficiency: "
-                  << efficiency << "%\n";
+    if (parallelAverage > 0.0) {
+        const double speedup = sequentialAverage / parallelAverage;
+        const double efficiency = speedup / numberOfThreads * 100.0;
+        std::cout << "Speedup: " << speedup << "x\n";
+        std::cout << "Parallel efficiency: " << efficiency << "%\n";
     }
 
-    std::cout << "\nResults verification: "
-              << (correct ? "PASSED" : "FAILED")
-              << "\n";
+    std::cout << "\nResult comparison: "
+              << (correct ? "PASSED" : "FAILED") << '\n';
 
     return correct ? 0 : 1;
 }

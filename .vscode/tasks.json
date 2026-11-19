@@ -1,0 +1,73 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Main Application",
+            "type": "shell",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "args": [
+                "-std=c++17", "-O2", "-Wall", "-Wextra", "-fopenmp",
+                "-Iinclude",
+                "src/main.cpp",
+                "src/LogReader.cpp",
+                "src/SequentialAnalyzer.cpp",
+                "src/ParallelAnalyzer.cpp",
+                "-o", "build/log_analyzer.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Log Reader Test",
+            "type": "shell",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "args": [
+                "-std=c++17", "-O2", "-Wall", "-Wextra", "-fopenmp",
+                "-Iinclude", "tests/test_log_reader.cpp",
+                "src/LogReader.cpp", "-o", "build/test_log_reader.exe"
+            ],
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Sequential Test",
+            "type": "shell",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "args": [
+                "-std=c++17", "-O2", "-Wall", "-Wextra", "-fopenmp",
+                "-Iinclude", "tests/test_sequential.cpp",
+                "src/LogReader.cpp", "src/SequentialAnalyzer.cpp",
+                "-o", "build/test_sequential.exe"
+            ],
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Parallel Test",
+            "type": "shell",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "args": [
+                "-std=c++17", "-O2", "-Wall", "-Wextra", "-fopenmp",
+                "-Iinclude", "tests/test_parallel.cpp",
+                "src/LogReader.cpp", "src/SequentialAnalyzer.cpp",
+                "src/ParallelAnalyzer.cpp",
+                "-o", "build/test_parallel.exe"
+            ],
+            "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "Build Benchmark",
+            "type": "shell",
+            "command": "C:\\msys64\\ucrt64\\bin\\g++.exe",
+            "args": [
+                "-std=c++17", "-O2", "-Wall", "-Wextra", "-fopenmp",
+                "-Iinclude", "tests/test_benchmark.cpp",
+                "src/LogReader.cpp", "src/SequentialAnalyzer.cpp",
+                "src/ParallelAnalyzer.cpp",
+                "-o", "build/test_benchmark.exe"
+            ],
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}

@@ -1,17 +1,16 @@
-
-# Compiled executables
+# Compiled files
 *.exe
 *.out
 *.o
 *.obj
 
-# Build directories
-build/
-bin/
+# Build output
+/build/*
+!/build/.gitkeep
 
-# Temporary files
+# Temporary test files
 *.tmp
-*.log.tmp
 
-# IDE settings
-.vscode/
+# IDE-specific files (keep the shared build tasks)
+.vscode/*
+!.vscode/tasks.json
